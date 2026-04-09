@@ -49,14 +49,14 @@ private const val PREF_BG_SYNC = "background_sync_enabled"
 
 class MainActivity : ComponentActivity() {
 
-    private val app by lazy { application as TreadSpanApp }
-    private val prefs: SharedPreferences by lazy { getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE) }
+    private lateinit var app: TreadSpanApp
+    private lateinit var prefs: SharedPreferences
     private val dashboardViewModel: DashboardViewModel by viewModels()
 
-    // ── Compose-observable state ────────────────────────────────────────────
-    private var pairedAddress by mutableStateOf(prefs.getString(PREF_PAIRED_ADDRESS, null))
-    private var pairedName by mutableStateOf(prefs.getString(PREF_PAIRED_NAME, null))
-    private var backgroundSyncEnabled by mutableStateOf(prefs.getBoolean(PREF_BG_SYNC, false))
+    // ── Compose-observable state (initialized in onCreate) ──────────────────
+    private var pairedAddress by mutableStateOf<String?>(null)
+    private var pairedName by mutableStateOf<String?>(null)
+    private var backgroundSyncEnabled by mutableStateOf(false)
     private var healthConnectGranted by mutableStateOf(false)
     private var blePermissionsGranted by mutableStateOf(false)
 
@@ -67,9 +67,12 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
+            // BLE companion returns ScanResult, not BluetoothDevice
             @Suppress("DEPRECATION")
-            val device: BluetoothDevice? = result.data
+            val scanResult: android.bluetooth.le.ScanResult? = result.data
                 ?.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE)
+            val device: BluetoothDevice? = scanResult?.device
+                ?: result.data?.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE)
             if (device != null) {
                 savePairedDevice(device)
                 startBleIfReady()
@@ -96,6 +99,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        app = application as TreadSpanApp
+        prefs = getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+        pairedAddress = prefs.getString(PREF_PAIRED_ADDRESS, null)
+        pairedName = prefs.getString(PREF_PAIRED_NAME, null)
+        backgroundSyncEnabled = prefs.getBoolean(PREF_BG_SYNC, false)
 
         checkBlePermissions()
         checkHealthConnect()
