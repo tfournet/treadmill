@@ -1,0 +1,16 @@
+[Unit]
+Description=Treadmill BLE step monitor
+After=bluetooth.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m treadmill_service
+WorkingDirectory=/home/tim/code/treadmill
+Environment=HOME=/home/tim
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Install]
+WantedBy=default.target

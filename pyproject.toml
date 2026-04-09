@@ -1,0 +1,12 @@
+[project]
+name = "treadmill-service"
+version = "0.1.0"
+description = "Sperax RM01 treadmill BLE step tracker with Health Connect sync"
+requires-python = ">=3.12"
+dependencies = [
+    "bleak>=3.0",
+    "aiohttp>=3.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
