@@ -6,6 +6,7 @@ import android.util.Log
 import com.tfournet.treadspan.data.HealthConnectManager
 import com.tfournet.treadspan.data.SessionTracker
 import com.tfournet.treadspan.data.TreadmillDatabase
+import com.tfournet.treadspan.sync.WatchSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,12 +31,32 @@ class TreadSpanApp : Application() {
         )
     }
 
+    private var baselineSteps: Int? = null
+
     val bleManager: TreadmillBleManager by lazy {
         TreadmillBleManager(
             context = this,
             scope = appScope,
             onReading = { reading ->
-                appScope.launch { sessionTracker.onReading(reading) }
+                appScope.launch {
+                    sessionTracker.onReading(reading)
+
+                    // Push live data to watch every reading (10s)
+                    if (baselineSteps == null) baselineSteps = reading.steps
+                    val sessionSteps = reading.steps - (baselineSteps ?: reading.steps)
+                    val todayIntervals = db.dao().getTodayIntervals(
+                        java.time.LocalDate.now(java.time.ZoneId.of("UTC")).toString()
+                    )
+                    val todayFlushed = todayIntervals.sumOf { it.stepCount }
+
+                    WatchSync.pushSteps(
+                        context = this@TreadSpanApp,
+                        todaySteps = todayFlushed + sessionSteps,
+                        sessionSteps = sessionSteps,
+                        speed = reading.speed,
+                        isWalking = reading.speed > 0,
+                    )
+                }
             },
         )
     }

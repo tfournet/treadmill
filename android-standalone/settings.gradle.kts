@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "TreadSpan"
 include(":app")
+include(":wear")
