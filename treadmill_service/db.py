@@ -136,7 +136,7 @@ class TreadmillDB:
         rows = self._conn.execute(
             """SELECT id, session_id, period_start, period_end, step_count
                FROM step_intervals
-               WHERE synced = 0
+               WHERE synced = 0 AND step_count > 0
                ORDER BY period_start
                LIMIT ?""",
             (limit,),

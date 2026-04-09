@@ -26,9 +26,15 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    private var onHealthPermissionResult: ((Boolean) -> Unit)? = null
+
     private val healthPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* permissions map */ }
+        androidx.health.connect.client.PermissionController.createRequestPermissionResultContract()
+    ) { granted ->
+        onHealthPermissionResult?.invoke(granted.containsAll(
+            (application as TreadSpanApp).healthConnect.permissions
+        ))
+    }
 
     private val prefs by lazy {
         getSharedPreferences("treadspan", Context.MODE_PRIVATE)
@@ -127,13 +133,10 @@ class MainActivity : ComponentActivity() {
                             },
                             healthConnectGranted = healthGranted,
                             onGrantHealthConnect = {
-                                scope.launch {
-                                    healthPermissionLauncher.launch(
-                                        app.healthConnect.permissions
-                                            .map { it.toString() }
-                                            .toTypedArray()
-                                    )
+                                onHealthPermissionResult = { granted ->
+                                    healthGranted = granted
                                 }
+                                healthPermissionLauncher.launch(app.healthConnect.permissions)
                             },
                             onBack = {
                                 if (!navController.popBackStack()) {

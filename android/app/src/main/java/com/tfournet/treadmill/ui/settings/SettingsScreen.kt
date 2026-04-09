@@ -1,5 +1,6 @@
 package com.tfournet.treadmill.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -103,29 +105,32 @@ fun SettingsScreen(
 
             // Health Connect section
             SectionHeader("Health Connect")
-            ListItem(
-                headlineContent = { Text("Health Connect") },
-                supportingContent = {
+            Surface(
+                onClick = {
+                    android.util.Log.d("TreadSpan", "Health Connect row tapped, granted=$healthConnectGranted")
+                    if (!healthConnectGranted) onGrantHealthConnect()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Text("Health Connect", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(4.dp))
                     if (healthConnectGranted) {
                         Text(
                             "Steps write permission granted",
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     } else {
                         Text(
-                            "Permission required",
+                            "Tap to grant permission",
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
-                },
-                trailingContent = {
-                    if (!healthConnectGranted) {
-                        TextButton(onClick = onGrantHealthConnect) {
-                            Text("Grant")
-                        }
-                    }
-                },
-            )
+                }
+            }
 
             // About section
             SectionHeader("About")
