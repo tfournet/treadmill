@@ -3,7 +3,7 @@ __pycache__/
 *.egg-info/
 dist/
 .venv/
-treadspan/
+/treadspan/
 *.db
 *.db-wal
 *.db-shm
@@ -11,3 +11,7 @@ android/.gradle/
 android/app/build/
 android/build/
 android/local.properties
+android-standalone/.gradle/
+android-standalone/app/build/
+android-standalone/build/
+android-standalone/local.properties
