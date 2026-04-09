@@ -32,7 +32,7 @@ private const val POLL_INTERVAL_MS = 10_000L   // poll every 10s for responsive 
 private const val INIT_GAP_1_MS = 300L         // gap between two CMD_INIT_1 writes
 private const val INIT_GAP_2_MS = 500L         // gap before CMD_INIT_2
 private const val GATT_SETUP_DELAY_MS = 600L   // settle after connection before service discovery
-private const val BACKOFF_MAX_SECS = 300        // cap exponential backoff at 5 min
+private const val BACKOFF_MAX_SECS = 30         // cap backoff at 30s — stay aggressive about reconnecting
 
 @SuppressLint("MissingPermission")
 class TreadmillBleManager(
@@ -87,12 +87,14 @@ class TreadmillBleManager(
         _state.value = State.SCANNING
         Log.i(TAG, "Scanning for $DEVICE_NAME")
 
+        // Clear any stale scan state — Android returns SCAN_FAILED_ALREADY_STARTED (1)
+        // if a previous scan wasn't properly stopped.
+        try { scanner.stopScan(scanCallback) } catch (_: Exception) {}
+
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
 
-        // Scan with no filter — match by device name in callback (some devices
-        // omit service UUIDs from advertising packets after initial pairing).
         scanner.startScan(null, settings, scanCallback)
     }
 
