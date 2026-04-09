@@ -19,6 +19,7 @@ def create_app(db: TreadmillDB, ble_manager) -> web.Application:
     app["ble"] = ble_manager
 
     app.router.add_get("/api/intervals/pending", handle_pending)
+    app.router.add_get("/api/intervals/today", handle_today)
     app.router.add_post("/api/intervals/{id}/synced", handle_synced)
     app.router.add_get("/api/status", handle_status)
 
@@ -29,6 +30,13 @@ async def handle_pending(request: web.Request) -> web.Response:
     db: TreadmillDB = request.app["db"]
     limit = int(request.query.get("limit", "50"))
     intervals = db.get_pending_intervals(limit)
+    return web.json_response(intervals)
+
+
+async def handle_today(request: web.Request) -> web.Response:
+    """All intervals for today (synced and pending), for dashboard display."""
+    db: TreadmillDB = request.app["db"]
+    intervals = db.get_today_intervals()
     return web.json_response(intervals)
 
 

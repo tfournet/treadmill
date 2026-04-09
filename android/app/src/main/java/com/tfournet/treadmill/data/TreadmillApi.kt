@@ -68,6 +68,12 @@ class TreadmillApi(private var baseUrl: String) {
         json.decodeFromString(body)
     }
 
+    suspend fun getTodayIntervals(): List<StepInterval> = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url("$baseUrl/api/intervals/today").build()
+        val body = client.newCall(request).execute().use { it.body!!.string() }
+        json.decodeFromString(body)
+    }
+
     suspend fun markSynced(intervalId: Int) = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("$baseUrl/api/intervals/$intervalId/synced")

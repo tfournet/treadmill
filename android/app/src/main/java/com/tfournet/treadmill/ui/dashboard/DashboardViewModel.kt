@@ -118,31 +118,31 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun refreshIntervals() {
         try {
-            allIntervals = api.getPendingIntervals()
-            val today = LocalDate.now()
+            val todayIntervals = api.getTodayIntervals()
+            val pending = api.getPendingIntervals()
             val zone = ZoneId.systemDefault()
 
-            // Count today's steps from pending + already-synced estimate
-            val todayPendingSteps = allIntervals
-                .filter { Instant.parse(it.period_start).atZone(zone).toLocalDate() == today }
-                .sumOf { it.step_count }
+            val todaySteps = todayIntervals.sumOf { it.step_count }
 
-            // Build chart bars (group by hour fraction)
-            val chartBars = allIntervals
-                .filter { Instant.parse(it.period_start).atZone(zone).toLocalDate() == today }
-                .map { interval ->
-                    val hour = Instant.parse(interval.period_start)
-                        .atZone(zone).let { it.hour + it.minute / 60f }
-                    ChartBar(hour, interval.step_count)
-                }
+            val chartBars = todayIntervals.map { interval ->
+                val hour = Instant.parse(interval.period_start)
+                    .atZone(zone).let { it.hour + it.minute / 60f }
+                ChartBar(hour, interval.step_count)
+            }
 
-            val lastSync = lastSyncTime?.let { formatTimeAgo(it) } ?: "Never"
+            // If any intervals are synced, we have synced before
+            val hasSynced = todayIntervals.any { it.step_count > 0 && it !in pending }
+            val syncAgo = if (hasSynced) {
+                lastSyncTime?.let { formatTimeAgo(it) } ?: "Earlier today"
+            } else {
+                lastSyncTime?.let { formatTimeAgo(it) } ?: "Never"
+            }
 
             _state.update {
                 it.copy(
-                    todaySteps = todayPendingSteps,
-                    pendingCount = allIntervals.size,
-                    lastSyncAgo = lastSync,
+                    todaySteps = todaySteps,
+                    pendingCount = pending.size,
+                    lastSyncAgo = syncAgo,
                     chartBars = chartBars,
                 )
             }

@@ -132,6 +132,18 @@ class TreadmillDB:
         )
         return cur.lastrowid
 
+    def get_today_intervals(self) -> list[dict]:
+        """All intervals from today (synced + pending, step_count > 0)."""
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        rows = self._conn.execute(
+            """SELECT id, session_id, period_start, period_end, step_count, synced
+               FROM step_intervals
+               WHERE period_start >= ? AND step_count > 0
+               ORDER BY period_start""",
+            (today,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
     def get_pending_intervals(self, limit: int = 50) -> list[dict]:
         rows = self._conn.execute(
             """SELECT id, session_id, period_start, period_end, step_count
