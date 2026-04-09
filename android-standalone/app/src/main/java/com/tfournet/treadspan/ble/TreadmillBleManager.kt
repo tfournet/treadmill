@@ -33,6 +33,7 @@ private const val INIT_GAP_1_MS = 300L         // gap between two CMD_INIT_1 wri
 private const val INIT_GAP_2_MS = 500L         // gap before CMD_INIT_2
 private const val GATT_SETUP_DELAY_MS = 600L   // settle after connection before service discovery
 private const val BACKOFF_MAX_SECS = 30         // cap backoff at 30s — stay aggressive about reconnecting
+private const val ADAPTER_RESET_THRESHOLD = 10  // toggle BT adapter after 10 consecutive failures
 
 @SuppressLint("MissingPermission")
 class TreadmillBleManager(
@@ -263,12 +264,37 @@ class TreadmillBleManager(
 
     private fun scheduleBackoff() {
         failureCount++
+        _state.value = State.BACKOFF
+
+        if (failureCount >= ADAPTER_RESET_THRESHOLD) {
+            Log.w(TAG, "Resetting Bluetooth adapter after $failureCount failures")
+            connectJob = scope.launch {
+                resetAdapter()
+                failureCount = 0
+                delay(3_000)
+                startScan()
+            }
+            return
+        }
+
         val backoffSecs = min(2.0.pow(failureCount).toLong(), BACKOFF_MAX_SECS.toLong())
         Log.i(TAG, "Backoff ${backoffSecs}s (failure #$failureCount)")
-        _state.value = State.BACKOFF
         connectJob = scope.launch {
             delay(backoffSecs * 1_000)
             startScan()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun resetAdapter() {
+        try {
+            adapter?.disable()
+            delay(2_000)
+            adapter?.enable()
+            delay(3_000)
+            Log.i(TAG, "Adapter reset complete")
+        } catch (e: Exception) {
+            Log.w(TAG, "Adapter reset failed: ${e.message}")
         }
     }
 
