@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <array name="health_permissions">
-        <item>androidx.health.permission.StepsRecord.READ</item>
-        <item>androidx.health.permission.StepsRecord.WRITE</item>
-    </array>
-    <style name="Theme.TreadSpan" parent="android:Theme.Material.Light.NoActionBar"/>
-</resources>
