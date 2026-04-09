@@ -54,6 +54,8 @@ class TreadmillApi(private var baseUrl: String) {
         baseUrl = url.trimEnd('/')
     }
 
+    fun debugUrl(): String = baseUrl
+
     suspend fun getStatus(): ServerStatus = withContext(Dispatchers.IO) {
         val request = Request.Builder().url("$baseUrl/api/status").build()
         val body = client.newCall(request).execute().use { it.body!!.string() }

@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
                             serverUrl = serverUrl,
                             onServerUrlChanged = { url ->
                                 serverUrl = url
-                                app.api.updateBaseUrl("http://$url")
+                                app.api.updateBaseUrl("https://$url")
                                 prefs.edit().putString("server_url", url).apply()
                             },
                             backgroundSyncEnabled = backgroundSync,
@@ -135,7 +135,13 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             },
-                            onBack = { navController.popBackStack() },
+                            onBack = {
+                                if (!navController.popBackStack()) {
+                                    navController.navigate("dashboard") {
+                                        popUpTo("settings") { inclusive = true }
+                                    }
+                                }
+                            },
                         )
                     }
                 }

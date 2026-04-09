@@ -66,6 +66,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
             updateFromStatus(status)
             _state.update { it.copy(isOffline = false) }
         } catch (e: Exception) {
+            android.util.Log.e("TreadSpan", "refreshStatus failed: ${api.debugUrl()}", e)
             _state.update {
                 it.copy(
                     isOffline = true,

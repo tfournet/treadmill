@@ -63,8 +63,20 @@ class Collector:
             delta_steps = max(0, reading.steps - self._prev.steps)
             delta_time = max(0, reading.time_secs - self._prev.time_secs)
         else:
-            delta_steps = reading.steps
-            delta_time = reading.time_secs
+            # First reading in session — check if treadmill's cumulative values
+            # overlap with the previous session (service restart without treadmill
+            # power cycle). If so, only count the difference as new steps.
+            last_db = await asyncio.to_thread(self.db.get_last_reading_any_session)
+            if last_db and reading.steps >= last_db["raw_steps"] and reading.time_secs >= last_db["raw_time_secs"]:
+                delta_steps = max(0, reading.steps - last_db["raw_steps"])
+                delta_time = max(0, reading.time_secs - last_db["raw_time_secs"])
+                log.info(
+                    "Resuming from previous session (last raw_steps=%d), delta=%d",
+                    last_db["raw_steps"], delta_steps,
+                )
+            else:
+                delta_steps = reading.steps
+                delta_time = reading.time_secs
 
         now_iso = now.isoformat()
 

@@ -151,6 +151,13 @@ class TreadmillDB:
 
     # --- Status ---
 
+    def get_last_reading_any_session(self) -> dict | None:
+        """Get the most recent reading across all sessions."""
+        row = self._conn.execute(
+            "SELECT * FROM readings ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        return dict(row) if row else None
+
     def get_active_session(self) -> dict | None:
         row = self._conn.execute(
             "SELECT * FROM sessions WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1"
