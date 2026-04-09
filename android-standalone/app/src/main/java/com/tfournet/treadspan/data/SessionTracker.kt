@@ -18,7 +18,10 @@ private const val DISTANCE_WRAP = 2.56                  // byte[10] wraps at 2.5
  * Thread-safe: all state is guarded by a Mutex since BLE callbacks
  * and CompanionDeviceService may call onReading concurrently.
  */
-class SessionTracker(private val dao: TreadmillDao) {
+class SessionTracker(
+    private val dao: TreadmillDao,
+    private val onWalkingStopped: (suspend () -> Unit)? = null,
+) {
 
     private val mutex = Mutex()
     private var sessionId: Long? = null
@@ -27,6 +30,7 @@ class SessionTracker(private val dao: TreadmillDao) {
     private var distanceOverflow: Double = 0.0
     private var intervalStart: Instant? = null
     private var intervalSteps: Int = 0
+    private var wasWalking: Boolean = false
 
     suspend fun onReading(reading: TreadmillReading) = mutex.withLock {
         val now = Instant.now()
@@ -115,6 +119,17 @@ class SessionTracker(private val dao: TreadmillDao) {
         if (elapsedSecs >= INTERVAL_SECS && intervalSteps > 0) {
             flushInterval(now)
         }
+
+        // Detect walking → stopped transition: flush + trigger sync
+        val isWalking = reading.speed > 0
+        if (wasWalking && !isWalking) {
+            Log.i(TAG, "Walking stopped — flushing interval and triggering sync")
+            if (intervalSteps > 0 && intervalStart != null) {
+                flushInterval(now)
+            }
+            onWalkingStopped?.invoke()
+        }
+        wasWalking = isWalking
 
         prev        = reading
         prevWallMs  = now.toEpochMilli()
