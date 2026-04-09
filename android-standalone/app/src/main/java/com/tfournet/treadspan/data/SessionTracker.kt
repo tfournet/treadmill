@@ -21,6 +21,7 @@ private const val DISTANCE_WRAP = 2.56                  // byte[10] wraps at 2.5
 class SessionTracker(
     private val dao: TreadmillDao,
     private val onWalkingStopped: (suspend () -> Unit)? = null,
+    private val onIntervalFlushed: (suspend () -> Unit)? = null,
 ) {
 
     private val mutex = Mutex()
@@ -175,5 +176,6 @@ class SessionTracker(
         Log.i(TAG, "Queued interval: $steps steps [$start → $now]")
         intervalStart = now
         intervalSteps = 0
+        onIntervalFlushed?.invoke()
     }
 }

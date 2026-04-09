@@ -26,6 +26,7 @@ class TreadSpanApp : Application() {
         SessionTracker(
             dao = db.dao(),
             onWalkingStopped = { syncPendingToHealthConnect() },
+            onIntervalFlushed = { syncPendingToHealthConnect() },
         )
     }
 
