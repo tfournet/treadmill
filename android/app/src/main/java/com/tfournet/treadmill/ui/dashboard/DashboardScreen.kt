@@ -115,7 +115,7 @@ fun DashboardScreen(
             StepBarChart(
                 bars = state.chartBars,
                 modifier = Modifier.padding(horizontal = 16.dp),
-                chartSummary = state.chartSummary,
+                totalDuration = state.chartSummary,
             )
 
             Spacer(Modifier.height(24.dp))

@@ -10,7 +10,7 @@ class TreadSpanApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        api = TreadmillApi("http://zafedora:8080")
+        api = TreadmillApi("")
         healthConnect = HealthConnectManager(this)
     }
 }

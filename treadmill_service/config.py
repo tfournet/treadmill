@@ -26,7 +26,9 @@ class DBConfig:
 @dataclass
 class APIConfig:
     host: str = "0.0.0.0"
-    port: int = 8080
+    port: int = 34150
+    tls_cert: str | None = None
+    tls_key: str | None = None
 
 
 @dataclass

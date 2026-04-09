@@ -71,7 +71,7 @@ fun SettingsScreen(
                 value = editedUrl,
                 onValueChange = { editedUrl = it },
                 label = { Text("Server address") },
-                prefix = { Text("http://") },
+                prefix = { Text("https://") },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()

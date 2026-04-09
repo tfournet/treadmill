@@ -1,7 +1,9 @@
-"""HTTP API for the Android companion app to consume step intervals."""
+"""HTTPS API for the Android companion app to consume step intervals."""
 
 import json
 import logging
+import ssl
+from pathlib import Path
 
 from aiohttp import web
 
@@ -56,10 +58,20 @@ async def handle_status(request: web.Request) -> web.Response:
 async def run_api(app: web.Application, config: APIConfig):
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, config.host, config.port)
-    log.info("API listening on %s:%d", config.host, config.port)
+
+    ssl_ctx = None
+    if config.tls_cert and config.tls_key:
+        cert = Path(config.tls_cert).expanduser()
+        key = Path(config.tls_key).expanduser()
+        if cert.exists() and key.exists():
+            ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_ctx.load_cert_chain(cert, key)
+            log.info("TLS enabled with cert %s", cert)
+
+    scheme = "https" if ssl_ctx else "http"
+    site = web.TCPSite(runner, config.host, config.port, ssl_context=ssl_ctx)
+    log.info("API listening on %s://%s:%d", scheme, config.host, config.port)
     await site.start()
-    # Keep running until cancelled
     try:
         while True:
             await __import__("asyncio").sleep(3600)

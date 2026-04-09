@@ -1,5 +1,6 @@
 package com.tfournet.treadmill
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,7 +11,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,11 +30,22 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { /* permissions map */ }
 
+    private val prefs by lazy {
+        getSharedPreferences("treadspan", Context.MODE_PRIVATE)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val app = application as TreadSpanApp
+
+        // Load persisted settings
+        val savedUrl = prefs.getString("server_url", "") ?: ""
+        val savedBgSync = prefs.getBoolean("background_sync", true)
+        if (savedUrl.isNotBlank()) {
+            app.api.updateBaseUrl("https://$savedUrl")
+        }
 
         setContent {
             TreadSpanTheme {
@@ -45,13 +56,20 @@ class MainActivity : ComponentActivity() {
                 dashboardViewModel.api = app.api
                 dashboardViewModel.healthConnect = app.healthConnect
 
-                LaunchedEffect(Unit) {
-                    dashboardViewModel.startPolling()
+                var serverUrl by mutableStateOf(savedUrl)
+
+                // Navigate to settings on first launch if no server configured
+                val needsSetup = serverUrl.isBlank()
+                val startDest = if (needsSetup) "settings" else "dashboard"
+
+                LaunchedEffect(serverUrl) {
+                    if (serverUrl.isNotBlank()) {
+                        dashboardViewModel.startPolling()
+                    }
                 }
 
-                var serverUrl by remember { mutableStateOf("zafedora:8080") }
-                var backgroundSync by remember { mutableStateOf(true) }
-                var healthGranted by remember { mutableStateOf(false) }
+                var backgroundSync by mutableStateOf(savedBgSync)
+                var healthGranted by mutableStateOf(false)
 
                 LaunchedEffect(Unit) {
                     healthGranted = app.healthConnect.hasPermissions()
@@ -60,7 +78,7 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(
                     navController = navController,
-                    startDestination = "dashboard",
+                    startDestination = startDest,
                     enterTransition = {
                         slideIntoContainer(
                             AnimatedContentTransitionScope.SlideDirection.Start,
@@ -98,21 +116,20 @@ class MainActivity : ComponentActivity() {
                             onServerUrlChanged = { url ->
                                 serverUrl = url
                                 app.api.updateBaseUrl("http://$url")
+                                prefs.edit().putString("server_url", url).apply()
                             },
                             backgroundSyncEnabled = backgroundSync,
                             onBackgroundSyncChanged = { enabled ->
                                 backgroundSync = enabled
+                                prefs.edit().putBoolean("background_sync", enabled).apply()
                                 if (enabled) SyncWorker.schedule(this@MainActivity)
                                 else SyncWorker.cancel(this@MainActivity)
                             },
                             healthConnectGranted = healthGranted,
                             onGrantHealthConnect = {
                                 scope.launch {
-                                    val contract = androidx.health.connect.client.PermissionController
-                                        .createRequestPermissionResultContract()
-                                    // Request Health Connect permissions
                                     healthPermissionLauncher.launch(
-                                        app.healthConnect.permissions.toTypedArray()
+                                        app.healthConnect.permissions
                                             .map { it.toString() }
                                             .toTypedArray()
                                     )
