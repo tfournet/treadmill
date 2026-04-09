@@ -13,5 +13,6 @@ android/build/
 android/local.properties
 android-standalone/.gradle/
 android-standalone/app/build/
+android-standalone/wear/build/
 android-standalone/build/
 android-standalone/local.properties
