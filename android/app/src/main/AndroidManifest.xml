@@ -11,7 +11,7 @@
     <application
         android:name=".TreadSpanApp"
         android:allowBackup="true"
-        android:icon="@android:mipmap/sym_def_app_icon"
+        android:icon="@mipmap/ic_launcher"
         android:label="TreadSpan"
         android:supportsRtl="true"
         android:theme="@style/Theme.TreadSpan">
