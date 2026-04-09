@@ -75,8 +75,9 @@ class Collector:
                     last_db["raw_steps"], delta_steps,
                 )
             else:
-                delta_steps = reading.steps
-                delta_time = reading.time_secs
+                delta_steps = 0
+                delta_time = 0
+                log.info("Baseline reading: steps=%d, time=%d (not counted)", reading.steps, reading.time_secs)
 
         now_iso = now.isoformat()
 

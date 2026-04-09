@@ -64,8 +64,9 @@ class SessionTracker(private val dao: TreadmillDao) {
             deltaSteps = maxOf(0, reading.steps - prevReading.steps)
             deltaTime  = maxOf(0, reading.timeSecs - prevReading.timeSecs)
         } else {
-            // First reading in session — dedup against last DB value to handle
-            // service restart without treadmill power cycle.
+            // First reading in session — use as baseline, don't count cumulative as new.
+            // If we have a prior DB reading with <= current values, take the difference.
+            // Otherwise (first ever reading, or treadmill was reset), baseline is 0.
             val lastDb = dao.getLastReadingAnySession()
             if (lastDb != null
                 && reading.steps >= lastDb.rawSteps
@@ -75,8 +76,10 @@ class SessionTracker(private val dao: TreadmillDao) {
                 deltaTime  = maxOf(0, reading.timeSecs - lastDb.rawTimeSecs)
                 Log.i(TAG, "Resuming from previous session (last rawSteps=${lastDb.rawSteps}), delta=$deltaSteps")
             } else {
-                deltaSteps = reading.steps
-                deltaTime  = reading.timeSecs
+                // First reading ever, or treadmill was power-cycled — use as baseline
+                deltaSteps = 0
+                deltaTime  = 0
+                Log.i(TAG, "Baseline reading: steps=${reading.steps}, time=${reading.timeSecs} (not counted)")
             }
         }
 
