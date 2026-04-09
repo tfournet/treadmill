@@ -89,20 +89,16 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 InfoCard(
-                    title = "Last Sync",
-                    value = state.lastSyncAgo,
-                    subtitle = if (state.pendingCount > 0) "${state.pendingCount} pending"
-                               else "All synced",
-                    valueColor = if (state.pendingCount > 0) MaterialTheme.colorScheme.primary
-                                 else MaterialTheme.colorScheme.onSurface,
+                    title = "This Session",
+                    value = state.sessionTrackedSteps,
+                    subtitle = state.sessionTrackedLabel,
+                    valueColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
                 )
-                val isConnected = state.treadmillStatus == TreadmillStatus.WALKING ||
-                    state.treadmillStatus == TreadmillStatus.CONNECTED
                 InfoCard(
-                    title = if (isConnected) "Current Session" else "Session",
-                    value = state.sessionSteps,
-                    subtitle = state.sessionSubtitle,
+                    title = "Treadmill",
+                    value = state.treadmillTotal,
+                    subtitle = state.treadmillStartedAt,
                     modifier = Modifier.weight(1f),
                 )
             }

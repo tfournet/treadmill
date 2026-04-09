@@ -37,12 +37,18 @@ data class DashboardState(
     val syncDetail: String = "",
     val lastSyncAgo: String = "Never",
     val pendingCount: Int = 0,
-    val sessionSteps: String = "--",
-    val sessionSubtitle: String = "No active session",
+    // This Session card
+    val sessionTrackedSteps: String = "--",
+    val sessionTrackedLabel: String = "No active session",
+    // Treadmill card
+    val treadmillTotal: String = "--",
+    val treadmillStartedAt: String = "",
     val chartBars: List<ChartBar> = emptyList(),
     val chartSummary: String = "",
     val isOffline: Boolean = false,
     val speed: Double = 0.0,
+    // Raw values for computing session tracked steps
+    val baselineSteps: Int? = null,
 )
 
 // ─── ViewModel ────────────────────────────────────────────────────────────────
@@ -103,10 +109,14 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     private fun observeActiveSession() {
         viewModelScope.launch {
             dao.getActiveSessionFlow().collectLatest { session ->
-                if (session != null && _state.value.sessionSteps == "--") {
-                    _state.update { it.copy(sessionSubtitle = "Session active") }
-                } else if (session == null) {
-                    _state.update { it.copy(sessionSubtitle = "No active session") }
+                if (session == null) {
+                    _state.update {
+                        it.copy(
+                            sessionTrackedSteps = "--",
+                            sessionTrackedLabel = "No active session",
+                            baselineSteps = null,
+                        )
+                    }
                 }
             }
         }
@@ -135,16 +145,23 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
                 if (reading == null) return@collectLatest
                 val currentBle = bleState?.value ?: BleConnectionState.CONNECTED
                 val (status, label) = bleConnectionToStatus(currentBle, reading.speed)
-                val sessionSteps = NumberFormat.getNumberInstance(Locale.getDefault())
-                    .format(reading.steps)
-                val sessionTime = "${reading.timeSecs / 60} min"
-                _state.update {
-                    it.copy(
+                val fmt = NumberFormat.getNumberInstance(Locale.getDefault())
+
+                _state.update { prev ->
+                    val baseline = prev.baselineSteps ?: reading.steps
+                    val tracked = reading.steps - baseline
+                    val mins = reading.timeSecs / 60
+                    val secs = reading.timeSecs % 60
+
+                    prev.copy(
                         treadmillStatus = status,
                         statusLabel = label,
                         speed = reading.speed,
-                        sessionSteps = sessionSteps,
-                        sessionSubtitle = "steps — $sessionTime",
+                        baselineSteps = baseline,
+                        sessionTrackedSteps = "+${fmt.format(tracked)}",
+                        sessionTrackedLabel = "since connected",
+                        treadmillTotal = "${fmt.format(reading.steps)} steps",
+                        treadmillStartedAt = "started at ${fmt.format(baseline)} · ${mins}m ${secs}s on belt",
                     )
                 }
             }

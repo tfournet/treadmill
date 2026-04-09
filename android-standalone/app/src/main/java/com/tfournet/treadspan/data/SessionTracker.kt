@@ -2,19 +2,25 @@ package com.tfournet.treadspan.data
 
 import android.util.Log
 import com.tfournet.treadspan.ble.TreadmillReading
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 
 private const val TAG = "SessionTracker"
-private const val GAP_THRESHOLD_MS = 10 * 60 * 1000L   // 10 minutes
+private const val GAP_THRESHOLD_MS = 20 * 60 * 1000L   // 20 minutes of inactivity ends a session
 private const val INTERVAL_SECS = 300                   // 5-minute aggregation window
 private const val DISTANCE_WRAP = 2.56                  // byte[10] wraps at 2.56 km
 
 /**
  * Mirrors Python Collector: detects session boundaries, computes per-reading deltas,
  * and flushes 5-minute step intervals to the Room database.
+ *
+ * Thread-safe: all state is guarded by a Mutex since BLE callbacks
+ * and CompanionDeviceService may call onReading concurrently.
  */
 class SessionTracker(private val dao: TreadmillDao) {
 
+    private val mutex = Mutex()
     private var sessionId: Long? = null
     private var prev: TreadmillReading? = null
     private var prevWallMs: Long? = null
@@ -22,7 +28,7 @@ class SessionTracker(private val dao: TreadmillDao) {
     private var intervalStart: Instant? = null
     private var intervalSteps: Int = 0
 
-    suspend fun onReading(reading: TreadmillReading) {
+    suspend fun onReading(reading: TreadmillReading) = mutex.withLock {
         val now = Instant.now()
         var newSession = false
 
@@ -115,7 +121,7 @@ class SessionTracker(private val dao: TreadmillDao) {
     }
 
     /** Flush any accumulated steps — call on shutdown or BLE disconnect. */
-    suspend fun flush() {
+    suspend fun flush() = mutex.withLock {
         if (intervalSteps > 0 && intervalStart != null) {
             flushInterval(Instant.now())
         }
