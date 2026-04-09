@@ -126,11 +126,11 @@ class TreadmillCompanionService : CompanionDeviceService() {
                 events.awaitType<GattEvent.WriteAck>()
             }
 
-            // 4. Handshake: CMD_INIT_1 × 2, CMD_INIT_2, CMD_POLL
+            // 4. Handshake: CMD_INIT_1 × 2, CMD_POLL
+            // CMD_INIT_2 skipped — it switches display to metric
             for (cmd in listOf(
                 TreadmillProtocol.CMD_INIT_1,
                 TreadmillProtocol.CMD_INIT_1,
-                TreadmillProtocol.CMD_INIT_2,
                 TreadmillProtocol.CMD_POLL,
             )) {
                 withTimeout(OP_TIMEOUT_MS) {

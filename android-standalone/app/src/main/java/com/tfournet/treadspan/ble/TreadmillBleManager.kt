@@ -214,16 +214,14 @@ class TreadmillBleManager(
         Log.i(TAG, "Sending init sequence")
 
         // CMD_INIT_1 sent twice, 300ms apart
+        // CMD_INIT_2 intentionally skipped — it switches the display to metric.
+        // Without it, data still flows and the treadmill keeps its current unit setting.
         writeChar.value = TreadmillProtocol.CMD_INIT_1
         gatt.writeCharacteristic(writeChar)
         delay(INIT_GAP_1_MS)
         writeChar.value = TreadmillProtocol.CMD_INIT_1
         gatt.writeCharacteristic(writeChar)
         delay(INIT_GAP_2_MS)
-
-        // CMD_INIT_2
-        writeChar.value = TreadmillProtocol.CMD_INIT_2
-        gatt.writeCharacteristic(writeChar)
 
         failureCount = 0
         _state.value = State.POLLING

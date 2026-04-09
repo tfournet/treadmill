@@ -223,7 +223,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         speed: Double,
     ): Pair<TreadmillStatus, String> = when (ble) {
         BleConnectionState.CONNECTED -> if (speed > 0) {
-            TreadmillStatus.WALKING to "Walking — $speed km/h"
+            TreadmillStatus.WALKING to "Walking — $speed mph"
         } else {
             TreadmillStatus.CONNECTED to "Connected"
         }
