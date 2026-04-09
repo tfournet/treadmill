@@ -28,7 +28,7 @@ import kotlin.math.pow
 
 private const val TAG = "TreadmillBleManager"
 private const val DEVICE_NAME = "SPERAX_RM01"
-private const val POLL_INTERVAL_MS = 30_000L   // keep-alive; device pushes notifications at ~1Hz
+private const val POLL_INTERVAL_MS = 10_000L   // poll every 10s for responsive live display
 private const val INIT_GAP_1_MS = 300L         // gap between two CMD_INIT_1 writes
 private const val INIT_GAP_2_MS = 500L         // gap before CMD_INIT_2
 private const val GATT_SETUP_DELAY_MS = 600L   // settle after connection before service discovery
