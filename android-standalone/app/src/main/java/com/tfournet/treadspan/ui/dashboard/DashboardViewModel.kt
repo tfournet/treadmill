@@ -31,6 +31,7 @@ enum class BleConnectionState { SCANNING, CONNECTING, CONNECTED, DISCONNECTED }
 
 data class DashboardState(
     val todaySteps: Int = 0,
+    val todayFlushedSteps: Int = 0,
     val treadmillStatus: TreadmillStatus = TreadmillStatus.SEARCHING,
     val statusLabel: String = "Searching...",
     val syncState: SyncState = SyncState.IDLE,
@@ -86,7 +87,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
             val zone = ZoneId.systemDefault()
 
             dao.getTodayIntervalsFlow(today).collectLatest { intervals ->
-                val todaySteps = intervals.sumOf { it.stepCount }
+                val flushedSteps = intervals.sumOf { it.stepCount }
                 val chartBars = intervals.map { interval ->
                     val hour = Instant.parse(interval.periodStart)
                         .atZone(zone)
@@ -96,7 +97,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
                 val pendingCount = intervals.count { it.synced == 0 }
                 _state.update {
                     it.copy(
-                        todaySteps = todaySteps,
+                        todayFlushedSteps = flushedSteps,
                         chartBars = chartBars,
                         pendingCount = pendingCount,
                         lastSyncAgo = lastSyncTime?.let { t -> formatTimeAgo(t) } ?: "Never",
@@ -158,6 +159,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
                         statusLabel = label,
                         speed = reading.speed,
                         baselineSteps = baseline,
+                        todaySteps = prev.todayFlushedSteps + tracked,
                         sessionTrackedSteps = "+${fmt.format(tracked)}",
                         sessionTrackedLabel = "since connected",
                         treadmillTotal = "${fmt.format(reading.steps)} steps",

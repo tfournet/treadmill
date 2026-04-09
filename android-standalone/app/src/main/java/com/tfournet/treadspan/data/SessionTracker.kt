@@ -8,7 +8,7 @@ import java.time.Instant
 
 private const val TAG = "SessionTracker"
 private const val GAP_THRESHOLD_MS = 20 * 60 * 1000L   // 20 minutes of inactivity ends a session
-private const val INTERVAL_SECS = 300                   // 5-minute aggregation window
+private const val INTERVAL_SECS = 60                    // 1-minute aggregation window
 private const val DISTANCE_WRAP = 2.56                  // byte[10] wraps at 2.56 km
 
 /**
