@@ -140,7 +140,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
             _state.update {
                 it.copy(
-                    todaySteps = it.todaySteps.coerceAtLeast(todayPendingSteps),
+                    todaySteps = todayPendingSteps,
                     pendingCount = allIntervals.size,
                     lastSyncAgo = lastSync,
                     chartBars = chartBars,
