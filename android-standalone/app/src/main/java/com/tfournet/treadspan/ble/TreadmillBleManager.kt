@@ -32,8 +32,14 @@ private const val POLL_INTERVAL_MS = 10_000L   // poll every 10s for responsive 
 private const val INIT_GAP_1_MS = 300L         // gap between two CMD_INIT_1 writes
 private const val INIT_GAP_2_MS = 500L         // gap before CMD_INIT_2
 private const val GATT_SETUP_DELAY_MS = 600L   // settle after connection before service discovery
-private const val BACKOFF_MAX_SECS = 30         // cap backoff at 30s — stay aggressive about reconnecting
 private const val ADAPTER_RESET_THRESHOLD = 10  // toggle BT adapter after 10 consecutive failures
+// Tiered reconnection:
+//   0-5 min  (~failures 1-10):  aggressive, 2-30s backoff
+//   5-30 min (~failures 11-22): slow, every 2 min
+//   30+ min:                    give up, wait for CompanionDeviceManager or app reopen
+private const val AGGRESSIVE_MAX_SECS = 30L
+private const val SLOW_INTERVAL_SECS = 120L
+private const val GIVE_UP_FAILURES = 22         // ~30 min of trying
 
 @SuppressLint("MissingPermission")
 class TreadmillBleManager(
@@ -266,18 +272,31 @@ class TreadmillBleManager(
         failureCount++
         _state.value = State.BACKOFF
 
-        if (failureCount >= ADAPTER_RESET_THRESHOLD) {
+        // Tier 3: give up after ~30 min, wait for CompanionDeviceManager or app reopen
+        if (failureCount >= GIVE_UP_FAILURES) {
+            Log.i(TAG, "Giving up after $failureCount failures — waiting for system wake")
+            _state.value = State.IDLE
+            return
+        }
+
+        // Tier 2: adapter reset at threshold
+        if (failureCount == ADAPTER_RESET_THRESHOLD) {
             Log.w(TAG, "Resetting Bluetooth adapter after $failureCount failures")
             connectJob = scope.launch {
                 resetAdapter()
-                failureCount = 0
                 delay(3_000)
                 startScan()
             }
             return
         }
 
-        val backoffSecs = min(2.0.pow(failureCount).toLong(), BACKOFF_MAX_SECS.toLong())
+        // Tier 1 (<5 min): aggressive 2-30s backoff
+        // Tier 2 (5-30 min): slow 2-min interval
+        val backoffSecs = if (failureCount <= ADAPTER_RESET_THRESHOLD) {
+            min(2.0.pow(failureCount).toLong(), AGGRESSIVE_MAX_SECS)
+        } else {
+            SLOW_INTERVAL_SECS
+        }
         Log.i(TAG, "Backoff ${backoffSecs}s (failure #$failureCount)")
         connectJob = scope.launch {
             delay(backoffSecs * 1_000)
