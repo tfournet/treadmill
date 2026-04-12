@@ -32,6 +32,7 @@ enum class BleConnectionState { SCANNING, CONNECTING, CONNECTED, DISCONNECTED }
 data class DashboardState(
     val todaySteps: Int = 0,
     val todayFlushedSteps: Int = 0,
+    val sessionFlushedSteps: Int = 0,
     val treadmillStatus: TreadmillStatus = TreadmillStatus.SEARCHING,
     val statusLabel: String = "Searching...",
     val syncState: SyncState = SyncState.IDLE,
@@ -96,8 +97,12 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 val pendingCount = intervals.count { it.synced == 0 }
                 _state.update {
+                    // Track how many of the flushed steps are from the current session
+                    // (delta from previous flush count = new steps just flushed)
+                    val newlyFlushed = flushedSteps - it.todayFlushedSteps
                     it.copy(
                         todayFlushedSteps = flushedSteps,
+                        sessionFlushedSteps = it.sessionFlushedSteps + maxOf(0, newlyFlushed),
                         chartBars = chartBars,
                         pendingCount = pendingCount,
                         lastSyncAgo = lastSyncTime?.let { t -> formatTimeAgo(t) } ?: "Never",
@@ -154,12 +159,17 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
                     val mins = reading.timeSecs / 60
                     val secs = reading.timeSecs % 60
 
+                    // todayFlushedSteps already includes steps from flushed intervals.
+                    // 'tracked' is total since baseline (includes flushed + unflushed).
+                    // Only add the unflushed portion to avoid double-counting.
+                    val unflushed = maxOf(0, tracked - prev.sessionFlushedSteps)
+
                     prev.copy(
                         treadmillStatus = status,
                         statusLabel = label,
                         speed = reading.speed,
                         baselineSteps = baseline,
-                        todaySteps = prev.todayFlushedSteps + tracked,
+                        todaySteps = prev.todayFlushedSteps + unflushed,
                         sessionTrackedSteps = "+${fmt.format(tracked)}",
                         sessionTrackedLabel = "since connected",
                         treadmillTotal = "${fmt.format(reading.steps)} steps",
