@@ -254,6 +254,13 @@ class TreadmillBleManager(
     private fun handleNotification(data: ByteArray) {
         val readings = decoder.feed(data)
         for (reading in readings) {
+            // If we're receiving data, we're connected — fix state if it drifted
+            // (e.g., CompanionDeviceService connection while state machine was scanning)
+            if (_state.value != State.POLLING) {
+                Log.i(TAG, "Received data while in ${_state.value} — correcting to POLLING")
+                _state.value = State.POLLING
+                failureCount = 0
+            }
             _latestReading.value = reading
             onReading(reading)
         }
