@@ -48,10 +48,14 @@ class TreadSpanApp : Application() {
                         java.time.LocalDate.now(java.time.ZoneId.of("UTC")).toString()
                     )
                     val todayFlushed = todayIntervals.sumOf { it.stepCount }
+                    // Unflushed = steps since last interval flush (avoid double-counting)
+                    val lastReading = db.dao().getLastReadingAnySession()
+                    val lastFlushedRaw = lastReading?.rawSteps ?: (baselineSteps ?: reading.steps)
+                    val unflushed = maxOf(0, reading.steps - lastFlushedRaw)
 
                     WatchSync.pushSteps(
                         context = this@TreadSpanApp,
-                        todaySteps = todayFlushed + sessionSteps,
+                        todaySteps = todayFlushed + unflushed,
                         sessionSteps = sessionSteps,
                         speed = reading.speed,
                         isWalking = reading.speed > 0,
